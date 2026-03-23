@@ -4,42 +4,32 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
 // =============================
-// 1️⃣ AI SERVER BAĞLANTISI
+// 1️⃣ AI SERVER BAĞLANTISI (GÜVENLİ)
 // =============================
 
-// app.js içindeki eski askAI fonksiyonunu tamamen bununla değiştir:
+// Artık anahtar burada değil, istekler kendi sunucuna yönlendiriliyor.
 async function askAI(question, modelName) {
-    const API_KEY = 'AIzaSyDJq51SNPMn1kG_2ius5C9WhNZzC40m2oA'; 
-    // Not: Model ismini stabil olan gemini-1.5-flash yaptım.
-    const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+    aiResponse.innerText = "Yapay zeka yanıtlıyor...";
 
     try {
-        const response = await fetch(API_URL, {
+        const response = await fetch('/ask', {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `Sen bir sanat tarihçisisin. '${modelName}' eseri hakkında şu soruyu yanıtla: ${question}`
-                    }]
-                }]
-            })
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question: question, modelName: modelName })
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            console.error("Google API Hatası:", data);
-            return `Hata: ${data.error?.message || "Yanıt alınamadı"}`;
+            console.error("Sunucu Hatası:", data);
+            return `Hata: ${data.error || "Yanıt alınamadı"}`;
         }
 
-        return data.candidates[0].content.parts[0].text;
+        return data.answer;
 
     } catch (error) {
         console.error("Bağlantı hatası:", error);
-        return "Yapay zekaya ulaşılamadı. İnternet bağlantınızı kontrol edin.";
+        return "Yapay zekaya ulaşılamadı. Sunucu bağlantınızı kontrol edin.";
     }
 }
 
@@ -103,7 +93,7 @@ function fitCameraToModel(model) {
         controls.update();
     }
 }
-
+if (currentModel) scene.remove(currentModel);
 function loadModel(file) {
     if (currentModel) scene.remove(currentModel);
 
@@ -139,8 +129,8 @@ askBtn.addEventListener('click', async () => {
     if (!q) return;
 
     aiResponse.style.display = 'block';
-    aiResponse.innerText = "Yapay zeka yanıtlıyor...";
-
+    
+    // Güvenli fonksiyon çağrısı
     const result = await askAI(
         q,
         modelList.selectedOptions[0].text
@@ -150,7 +140,7 @@ askBtn.addEventListener('click', async () => {
 });
 
 // =============================
-// 5️⃣ RESPONSIVE
+// 5️⃣ RESPONSIVE & ANIMASYON
 // =============================
 
 window.addEventListener('resize', () => {
